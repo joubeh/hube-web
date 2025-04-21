@@ -1,14 +1,12 @@
 "use client";
 
 import React, { useState } from "react";
-import {
-  Button,
-  Divider,
-  Form,
-  Input,
-  addToast,
-  InputOtp,
-} from "@heroui/react";
+import { Button } from "@heroui/button";
+import { Divider } from "@heroui/divider";
+import { Form } from "@heroui/form";
+import { Input } from "@heroui/input";
+import { InputOtp } from "@heroui/input-otp";
+import { addToast } from "@heroui/toast";
 import { PiEyeSlash, PiEye } from "react-icons/pi";
 import Image from "next/image";
 import api from "@/lib/api";
@@ -211,6 +209,7 @@ export default function Login() {
             onValueChange={(val) => setCode(val)}
             length={4}
             size="lg"
+            errorMessage="Invalid OTP code"
           />
         </div>
       );

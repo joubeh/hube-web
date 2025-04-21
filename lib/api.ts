@@ -1,4 +1,4 @@
-import { addToast } from "@heroui/react";
+import { addToast } from "@heroui/toast";
 
 export default async function api(
   url: string,
