@@ -3,8 +3,6 @@
 import React, { useRef, useState, useEffect, use } from "react";
 import {
   PiChatCircleSlash,
-  PiNotePencil,
-  PiMicrophone,
   PiWaveformBold,
   PiPlus,
   PiLightbulb,
@@ -13,7 +11,12 @@ import {
   PiArrowUpBold,
   PiList,
   PiHouse,
-  PiGlobe,
+  PiNotePencil,
+  PiMicrophone,
+  PiGlobeSimple,
+  PiCopy,
+  PiRobot,
+  PiPaintBrush,
 } from "react-icons/pi";
 import { useDisclosure } from "@heroui/use-disclosure";
 import { Button } from "@heroui/button";
@@ -32,6 +35,10 @@ import {
 } from "@heroui/drawer";
 import { useRouter } from "next/navigation";
 import api from "@/lib/api";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 const models = [
   {
@@ -51,6 +58,44 @@ const models = [
   },
 ];
 
+function MarkdownRenderer({ content }: { content: string }) {
+  return (
+    <div className="prose dark:prose-invert max-w-none" dir="auto">
+      <ReactMarkdown
+        children={content}
+        remarkPlugins={[remarkGfm]} // Enable GFM features
+        components={{
+          // This is the crucial part for code highlighting
+          code({ node, inline, className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || "");
+            return !inline && match ? (
+              <SyntaxHighlighter
+                style={oneDark} // Use the chosen style
+                language={match[1]}
+                PreTag="div" // Use div instead of pre for better styling control if needed
+                {...props}
+              >
+                {String(children).replace(/\n$/, "")}
+              </SyntaxHighlighter>
+            ) : (
+              // Render inline code differently (optional)
+              <code
+                className={`${className} bg-gray-200 dark:bg-gray-700 px-1 rounded text-red-600 dark:text-red-400`}
+                {...props}
+              >
+                {children}
+              </code>
+            );
+          },
+          // Optional: Customize other elements if needed
+          // h1: ({node, ...props}) => <h1 className="text-2xl font-bold" {...props} />,
+          // p: ({node, ...props}) => <p className="mb-4" {...props} />,
+        }}
+      />
+    </div>
+  );
+}
+
 type Params = Promise<{ id?: string }>;
 type Message = {
   id: number;
@@ -69,6 +114,7 @@ export default function Chatgpt(props: { params: Params }) {
   const [isTemporary, setIsTemporary] = useState(false);
   const [isSearch, setIsSearch] = useState(false);
   const [isReasoning, setIsReasoning] = useState(false);
+  const [isImageGeneration, setIsImageGeneration] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -174,26 +220,68 @@ export default function Chatgpt(props: { params: Params }) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
-      <div className="flex md:hidden items-center justify-between p-2 px-3">
+    <div className="flex flex-col min-h-screen relative">
+      <div
+        className={`flex items-start justify-start text-gray-700 gap-1 p-2 px-3 bg-background fixed top-0 right-0 w-full border-gray-300 ${
+          conversationId && "border-b"
+        }`}
+      >
         <Button
           onPress={onOpen}
           isIconOnly
-          radius="lg"
-          color="default"
-          variant="light"
+          radius="full"
+          color={"default"}
+          variant={"bordered"}
+          size="sm"
+          className="gap-1"
         >
-          <PiList className="text-2xl" />
+          <PiList className="text-lg" />
         </Button>
+        <Button
+          onPress={(e) => router.push("/")}
+          radius="full"
+          color={"default"}
+          variant={"bordered"}
+          size="sm"
+          className="gap-1"
+          startContent={<PiHouse className="text-lg" />}
+        >
+          خانه
+        </Button>
+        {conversationId ? (
+          <Button
+            radius="full"
+            color={"default"}
+            variant={"bordered"}
+            size="sm"
+            className="gap-1"
+            startContent={<PiNotePencil className="text-lg" />}
+          >
+            گفتگو جدید
+          </Button>
+        ) : (
+          <Button
+            onPress={(e) => setIsTemporary((s) => !s)}
+            radius="full"
+            color={isTemporary ? "secondary" : "default"}
+            variant={isTemporary ? "flat" : "bordered"}
+            size="sm"
+            className="gap-1"
+            startContent={<PiChatCircleSlash className="text-lg" />}
+          >
+            گفتگو موقت
+          </Button>
+        )}
 
         <Dropdown>
           <DropdownTrigger>
             <Button
-              radius="lg"
-              color="default"
-              variant="light"
-              className="text-lg gap-1"
-              startContent={<PiCaretDown className="text-sm" />}
+              radius="full"
+              color={"default"}
+              variant={"bordered"}
+              size="sm"
+              className="gap-1"
+              startContent={<PiRobot className="text-lg" />}
             >
               {selectedModel}
             </Button>
@@ -217,113 +305,17 @@ export default function Chatgpt(props: { params: Params }) {
             ))}
           </DropdownMenu>
         </Dropdown>
-
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            onPress={(e) => setIsTemporary((s) => !s)}
-            radius="full"
-            color={isTemporary ? "primary" : "default"}
-            variant={isTemporary ? "flat" : "bordered"}
-            size="sm"
-            isIconOnly
-          >
-            <PiChatCircleSlash className="text-lg" />
-          </Button>
-          <Button
-            onPress={(e) => router.push("/")}
-            radius="full"
-            color={"default"}
-            variant={"bordered"}
-            size="sm"
-            isIconOnly
-          >
-            <PiHouse className="text-lg" />
-          </Button>
-        </div>
-      </div>
-
-      <div className="hidden md:flex items-center justify-between p-2 px-3">
-        <div className="flex items-start justify-center text-gray-700">
-          <Button
-            onPress={onOpen}
-            isIconOnly
-            radius="lg"
-            color="default"
-            variant="light"
-          >
-            <PiList className="text-2xl" />
-          </Button>
-          <Button isIconOnly radius="lg" color="default" variant="light">
-            <PiNotePencil className="text-2xl" />
-          </Button>
-
-          <Dropdown>
-            <DropdownTrigger>
-              <Button
-                radius="lg"
-                color="default"
-                variant="light"
-                className="text-lg gap-1"
-                startContent={<PiCaretDown className="text-sm" />}
-              >
-                {selectedModel}
-              </Button>
-            </DropdownTrigger>
-            <DropdownMenu
-              variant="faded"
-              onAction={(key) => setSelectedModel(key.toString())}
-            >
-              {models.map((m) => (
-                <DropdownItem
-                  key={m.name}
-                  description={m.description}
-                  endContent={
-                    selectedModel === m.name ? (
-                      <PiCheckCircle className="text-xl text-default-800 pointer-events-none flex-shrink-0" />
-                    ) : null
-                  }
-                >
-                  {m.name}
-                </DropdownItem>
-              ))}
-            </DropdownMenu>
-          </Dropdown>
-        </div>
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            onPress={(e) => setIsTemporary((s) => !s)}
-            radius="full"
-            color={isTemporary ? "primary" : "default"}
-            variant={isTemporary ? "flat" : "bordered"}
-            size="sm"
-            className="gap-1"
-            startContent={<PiChatCircleSlash className="text-lg" />}
-          >
-            گفتگو موقت
-          </Button>
-          <Button
-            onPress={(e) => router.push("/")}
-            isIconOnly
-            radius="full"
-            color={"default"}
-            variant={"bordered"}
-            size="sm"
-            className="gap-1"
-          >
-            <PiHouse className="text-lg" />
-          </Button>
-        </div>
       </div>
 
       <div
         className={`flex flex-col gap-4 items-center ${
           conversationId
-            ? "justify-between"
+            ? "justify-between pt-[3.5rem] pb-[10rem]"
             : "justify-between md:justify-start"
-        } p-2 flex-1`}
+        } px-0 flex-1`}
       >
         {conversationId ? (
-          <div className="flex flex-col gap-4 w-full md:max-w-[45rem]">
+          <div className="flex flex-col gap-4 w-full md:max-w-[45rem] px-4">
             {messages.map((m) => (
               <div
                 key={m.id}
@@ -331,138 +323,191 @@ export default function Chatgpt(props: { params: Params }) {
               >
                 <div
                   className={
-                    m.role === "user"
-                      ? "bg-gray-100 py-3 px-4 rounded-full"
-                      : ""
+                    m.role === "user" ? "bg-gray-100 py-3 px-4 rounded-2xl" : ""
                   }
-                  dir="auto"
                 >
-                  {m.content}
+                  <MarkdownRenderer content={m.content} />
                 </div>
               </div>
             ))}
-            {processingMessage && <div>{processingMessage}</div>}
+            {processingMessage && (
+              <MarkdownRenderer content={processingMessage} />
+            )}
+          </div>
+        ) : isTemporary ? (
+          <div className="pt-[14rem]">
+            <div className="text-center text-2xl font-bold">
+              چه کمکی میتونم بکنم؟
+            </div>
+            <div className="text-center mt-2 text-gray-700">
+              این گفتگو موقتی است و ذخیره نمیشود
+            </div>
           </div>
         ) : (
-          <div className="text-2xl pt-[10rem] font-bold">
+          <div className="text-2xl pt-[14rem] font-bold">
             چه کمکی میتونم بکنم؟
           </div>
         )}
-        <div className="w-full md:max-w-[45rem]">
-          <div className="px-4 py-3 shadow md:shadow-lg rounded-3xl border border-gray-300 w-full">
-            <textarea
-              ref={textareaRef}
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              rows={1}
-              className="px-1 pt-1 pb-2 md:px-2"
-              style={{
-                width: "100%",
-                resize: "none",
-                overflow: "hidden",
-                lineHeight: "1.5",
-                outline: "none",
-                border: "none",
-              }}
-              dir={text ? "auto" : "rtl"}
-              placeholder="هرچی میخوای بپرس"
-            />
-            <div className="flex items-center justify-between mt-2">
-              <div className="flex items-center justify-cneter text-sm gap-1">
-                <Button
-                  isIconOnly
-                  radius="full"
-                  color="default"
-                  variant="bordered"
-                  size="sm"
-                >
-                  <PiPlus className="text-lg" />
-                </Button>
+        <div
+          className={`w-full ${
+            conversationId && "fixed bottom-0 right-0"
+          } bg-background p-2`}
+        >
+          <div className="w-full md:max-w-[45rem] mx-auto">
+            <div
+              className={`px-4 py-3 shadow md:shadow-lg rounded-3xl border border-gray-300 w-full ${
+                isTemporary && "bg-zinc-800 text-white dark"
+              }`}
+            >
+              <textarea
+                ref={textareaRef}
+                value={text}
+                onChange={(e) => setText(e.target.value)}
+                rows={1}
+                className={`px-1 pt-1 pb-2 md:px-2 ${
+                  isTemporary && "bg-zinc-800"
+                }`}
+                style={{
+                  width: "100%",
+                  resize: "none",
+                  overflow: "hidden",
+                  lineHeight: "1.5",
+                  outline: "none",
+                  border: "none",
+                }}
+                dir={text ? "auto" : "rtl"}
+                placeholder={
+                  isImageGeneration ? "عکس را توصیف کنید" : "هرچی میخوای بپرس"
+                }
+              />
+              <div className="flex items-center justify-between mt-2">
+                <div className="flex items-center justify-cneter text-sm gap-1">
+                  <Button
+                    isIconOnly
+                    radius="full"
+                    color="default"
+                    variant="bordered"
+                    size="sm"
+                  >
+                    <PiPlus className="text-lg" />
+                  </Button>
 
-                <div className="hidden md:block">
-                  <Button
-                    onPress={(e) => setIsSearch((s) => !s)}
-                    radius="full"
-                    color={isSearch ? "primary" : "default"}
-                    variant={isSearch ? "flat" : "bordered"}
-                    size="sm"
-                    className="gap-1"
-                    startContent={<PiGlobe className="text-lg" />}
-                  >
-                    جستجو وب
-                  </Button>
+                  <div className="hidden md:block">
+                    <Button
+                      onPress={(e) => setIsSearch((s) => !s)}
+                      radius="full"
+                      color={isSearch ? "secondary" : "default"}
+                      variant={isSearch ? "flat" : "bordered"}
+                      size="sm"
+                      className="gap-1"
+                      startContent={<PiGlobeSimple className="text-lg" />}
+                    >
+                      جستجو وب
+                    </Button>
+                  </div>
+                  <div className="block md:hidden">
+                    <Button
+                      onPress={(e) => setIsSearch((s) => !s)}
+                      isIconOnly
+                      radius="full"
+                      color={isSearch ? "secondary" : "default"}
+                      variant={isSearch ? "flat" : "bordered"}
+                      size="sm"
+                    >
+                      <PiGlobeSimple className="text-lg" />
+                    </Button>
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Button
+                      onPress={(e) => setIsReasoning((s) => !s)}
+                      radius="full"
+                      color={isReasoning ? "secondary" : "default"}
+                      variant={isReasoning ? "flat" : "bordered"}
+                      size="sm"
+                      className="gap-1"
+                      startContent={<PiLightbulb className="text-lg" />}
+                    >
+                      تفکر استدلالی
+                    </Button>
+                  </div>
+                  <div className="block md:hidden">
+                    <Button
+                      onPress={(e) => setIsReasoning((s) => !s)}
+                      isIconOnly
+                      radius="full"
+                      color={isReasoning ? "secondary" : "default"}
+                      variant={isReasoning ? "flat" : "bordered"}
+                      size="sm"
+                    >
+                      <PiLightbulb className="text-lg" />
+                    </Button>
+                  </div>
+
+                  <div className="hidden md:block">
+                    <Button
+                      onPress={(e) => setIsImageGeneration((s) => !s)}
+                      radius="full"
+                      color={isImageGeneration ? "secondary" : "default"}
+                      variant={isImageGeneration ? "flat" : "bordered"}
+                      size="sm"
+                      className="gap-1"
+                      startContent={<PiPaintBrush className="text-lg" />}
+                    >
+                      تولید عکس
+                    </Button>
+                  </div>
+                  <div className="block md:hidden">
+                    <Button
+                      onPress={(e) => setIsImageGeneration((s) => !s)}
+                      isIconOnly
+                      radius="full"
+                      color={isImageGeneration ? "secondary" : "default"}
+                      variant={isImageGeneration ? "flat" : "bordered"}
+                      size="sm"
+                    >
+                      <PiPaintBrush className="text-lg" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="hidden md:block">
+                <div className="flex items-center justify-cneter gap-1">
                   <Button
-                    onPress={(e) => setIsReasoning((s) => !s)}
-                    radius="full"
-                    color={isReasoning ? "primary" : "default"}
-                    variant={isReasoning ? "flat" : "bordered"}
-                    size="sm"
-                    className="gap-1"
-                    startContent={<PiLightbulb className="text-lg" />}
-                  >
-                    تفکر عمیق
-                  </Button>
-                </div>
-                <div className="block md:hidden">
-                  <Button
-                    onPress={(e) => setIsSearch((s) => !s)}
                     isIconOnly
                     radius="full"
-                    color={isSearch ? "primary" : "default"}
-                    variant={isSearch ? "flat" : "bordered"}
+                    color="default"
+                    variant="bordered"
                     size="sm"
                   >
-                    <PiGlobe className="text-lg" />
+                    <PiMicrophone className="text-lg" />
                   </Button>
-                </div>
-                <div className="block md:hidden">
                   <Button
-                    onPress={(e) => setIsSearch((s) => !s)}
                     isIconOnly
                     radius="full"
-                    color={isSearch ? "primary" : "default"}
-                    variant={isSearch ? "flat" : "bordered"}
+                    color="default"
                     size="sm"
+                    className={
+                      isTemporary
+                        ? "bg-zinc-500 text-zinc-800"
+                        : "bg-black text-white"
+                    }
+                    isLoading={isLoading}
+                    onPress={handleSubmit}
                   >
-                    <PiLightbulb className="text-lg" />
+                    {text ? (
+                      <PiArrowUpBold className="text-lg" />
+                    ) : (
+                      <PiWaveformBold className="text-lg" />
+                    )}
                   </Button>
                 </div>
-              </div>
-              <div className="flex items-center justify-cneter gap-1">
-                <Button
-                  isIconOnly
-                  radius="full"
-                  color="default"
-                  variant="bordered"
-                  size="sm"
-                >
-                  <PiMicrophone className="text-lg" />
-                </Button>
-                <Button
-                  isIconOnly
-                  radius="full"
-                  color="default"
-                  size="sm"
-                  className="bg-black text-white"
-                  isLoading={isLoading}
-                  onPress={handleSubmit}
-                >
-                  {text ? (
-                    <PiArrowUpBold className="text-lg" />
-                  ) : (
-                    <PiWaveformBold className="text-lg" />
-                  )}
-                </Button>
               </div>
             </div>
+            {conversationId && (
+              <div className="text-gray-700 text-xs text-center mt-1 md:mt-2">
+                چت جی پی تی ممکن است اشتباه کند. اطلاعات مهم را بررسی کنید.
+              </div>
+            )}
           </div>
-          {conversationId && (
-            <div className="text-gray-700 text-xs text-center mt-1 md:mt-2">
-              چت جی پی تی ممکن است اشتباه کند. اطلاعات مهم را بررسی کنید.
-            </div>
-          )}
         </div>
       </div>
 
