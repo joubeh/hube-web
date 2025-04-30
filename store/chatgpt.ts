@@ -1,6 +1,6 @@
 import { Conversation } from "@/types/chatgpt";
 import { create } from "zustand";
-import { models } from "@/lib/chatgpt/models";
+import { textModels } from "@/lib/chatgpt/models";
 
 interface ConversationState {
   conversation?: Conversation;
@@ -11,8 +11,6 @@ interface ConversationState {
   toggleIsSearch: () => void;
   isReasoning: boolean;
   toggleIsReasoning: () => void;
-  isImageGeneration: boolean;
-  toggleIsImageGeneration: () => void;
   prompt: string;
   setPrompt: (value: string) => void;
   modelIdx: number;
@@ -34,14 +32,11 @@ export const useConversationStore = create<ConversationState>((set) => ({
         isSearch: !state.isSearch,
         modelIdx: state.modelIdx,
         isReasoning: state.isReasoning,
-        isImageGeneration: state.isImageGeneration,
       };
       if (!state.isSearch) {
-        newState.modelIdx = models.findIndex((model) => model.canWebSearch);
-        if (!models[newState.modelIdx].canReasoning)
+        newState.modelIdx = textModels.findIndex((model) => model.canWebSearch);
+        if (!textModels[newState.modelIdx].canReasoning)
           newState.isReasoning = false;
-        if (!models[newState.modelIdx].canGenerateImage)
-          newState.isImageGeneration = false;
       }
       return newState;
     }),
@@ -52,30 +47,11 @@ export const useConversationStore = create<ConversationState>((set) => ({
         isReasoning: !state.isReasoning,
         modelIdx: state.modelIdx,
         isSearch: state.isSearch,
-        isImageGeneration: state.isImageGeneration,
       };
       if (!state.isReasoning) {
-        newState.modelIdx = models.findIndex((model) => model.canReasoning);
-        if (!models[newState.modelIdx].canWebSearch) newState.isSearch = false;
-        if (!models[newState.modelIdx].canGenerateImage)
-          newState.isImageGeneration = false;
-      }
-      return newState;
-    }),
-  isImageGeneration: false,
-  toggleIsImageGeneration: () =>
-    set((state) => {
-      let newState = {
-        isImageGeneration: !state.isImageGeneration,
-        modelIdx: state.modelIdx,
-        isSearch: state.isSearch,
-        isReasoning: state.isReasoning,
-      };
-      if (!state.isImageGeneration) {
-        newState.modelIdx = models.findIndex((model) => model.canGenerateImage);
-        if (!models[newState.modelIdx].canWebSearch) newState.isSearch = false;
-        if (!models[newState.modelIdx].canReasoning)
-          newState.isReasoning = false;
+        newState.modelIdx = textModels.findIndex((model) => model.canReasoning);
+        if (!textModels[newState.modelIdx].canWebSearch)
+          newState.isSearch = false;
       }
       return newState;
     }),
@@ -92,7 +68,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
       isTemporary: false,
       isSearch: false,
       isReasoning: false,
-      isImageGeneration: false,
       prompt: "",
       modelIdx: 0,
     })),

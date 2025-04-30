@@ -250,7 +250,7 @@ export default function Login() {
         <Image
           src="/assets/logo.webp"
           alt="logo"
-          className="mx-auto"
+          className="mx-auto rounded-2xl"
           width={80}
           height={80}
         />

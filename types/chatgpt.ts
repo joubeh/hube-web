@@ -10,9 +10,11 @@ export type Message = {
   id: number;
   conversationId: string;
   model: string;
-  type: string;
   role: "user" | "assistant";
   content: string;
+  useWebSearch: boolean;
+  useReasoning: boolean;
+  reasoningEffort: "low" | "medium" | "high" | null;
 };
 
 export type Pricing = {

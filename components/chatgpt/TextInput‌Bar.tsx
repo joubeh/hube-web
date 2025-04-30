@@ -12,8 +12,9 @@ import {
   PiPaintBrush,
 } from "react-icons/pi";
 import { useConversationStore } from "@/store/chatgpt";
+import { useRouter } from "next/navigation";
 
-export default function InputBar({
+export default function TextInputBar({
   isLoading,
   onSubmit,
 }: {
@@ -28,9 +29,9 @@ export default function InputBar({
     toggleIsSearch,
     isReasoning,
     toggleIsReasoning,
-    isImageGeneration,
-    toggleIsImageGeneration,
+    resetConversation,
   } = useConversationStore();
+  const router = useRouter();
 
   function adjustHeight() {
     const textarea = textareaRef.current;
@@ -51,6 +52,11 @@ export default function InputBar({
       onSubmit(input);
       setText("");
     }
+  }
+
+  function imageGeneration() {
+    // resetConversation();
+    // router.push("/chatgpt-image");
   }
 
   return (
@@ -75,9 +81,7 @@ export default function InputBar({
           border: "none",
         }}
         dir={text ? "auto" : "rtl"}
-        placeholder={
-          isImageGeneration ? "عکس را توصیف کنید" : "هرچی میخوای بپرس"
-        }
+        placeholder="هرچی میخوای بپرس"
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center justify-cneter text-sm gap-1">
@@ -145,10 +149,10 @@ export default function InputBar({
 
           <div className="hidden md:block">
             <Button
-              onPress={toggleIsImageGeneration}
+              onPress={imageGeneration}
               radius="full"
-              color={isImageGeneration ? "primary" : "default"}
-              variant={isImageGeneration ? "flat" : "bordered"}
+              color="default"
+              variant="bordered"
               size="sm"
               className="gap-1"
               startContent={<PiPaintBrush className="text-lg" />}
@@ -158,11 +162,11 @@ export default function InputBar({
           </div>
           <div className="block md:hidden">
             <Button
-              onPress={toggleIsImageGeneration}
+              onPress={imageGeneration}
               isIconOnly
               radius="full"
-              color={isImageGeneration ? "primary" : "default"}
-              variant={isImageGeneration ? "flat" : "bordered"}
+              color="default"
+              variant="bordered"
               size="sm"
             >
               <PiPaintBrush className="text-lg" />

@@ -139,11 +139,7 @@ function AssistantMessage({
   return (
     <div>
       <div>
-        {message.type === "text" ? (
-          <MarkdownRenderer content={message.content} />
-        ) : (
-          <img src={message.content} alt="output" />
-        )}
+        <MarkdownRenderer content={message.content} />
       </div>
       <div dir="ltr">
         <Button
@@ -163,13 +159,11 @@ function AssistantMessage({
             <PiArrowsClockwise />
           </Button>
         )}
-        {message.type === "image" && (
-          <Button isIconOnly color="default" variant="light" size="sm">
+        {/* <Button isIconOnly color="default" variant="light" size="sm">
             <a href={message.content} download target="_blank">
               <PiDownload />
             </a>
-          </Button>
-        )}
+          </Button> */}
       </div>
     </div>
   );
