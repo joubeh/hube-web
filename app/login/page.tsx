@@ -203,13 +203,12 @@ export default function Login() {
           <InputOtp
             isRequired
             label="کد تایید"
-            placeholder="09120000000"
             type="text"
             value={code}
             onValueChange={(val) => setCode(val)}
             length={4}
             size="lg"
-            errorMessage="Invalid OTP code"
+            errorMessage="کد باید ۴ رقم باشد"
           />
         </div>
       );
@@ -269,7 +268,7 @@ export default function Login() {
         </Form>
         <Divider />
         <p dir="ltr" className="text-xs text-center text-gray-600">
-          ©2025 Violet Brains
+          ©2025 Hube
         </p>
       </div>
     </div>
