@@ -55,8 +55,8 @@ export default function TextInputBar({
   }
 
   function imageGeneration() {
-    // resetConversation();
-    // router.push("/chatgpt-image");
+    resetConversation();
+    router.push("/chatgpt/image");
   }
 
   return (

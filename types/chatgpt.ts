@@ -32,6 +32,17 @@ export type ImageGenerationModel = {
   pricing: Pricing;
 };
 
+export type GeneratedImage = {
+  id: number;
+  model: string;
+  prompt: string;
+  output: string | null;
+  isDone: boolean;
+  error: boolean;
+  size: string;
+  quality: string;
+};
+
 export type TextModel = {
   model: string;
   name: string;

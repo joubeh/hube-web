@@ -10,7 +10,7 @@ import {
   PiList,
   PiHouse,
   PiNotePencil,
-  PiRobot,
+  PiOpenAiLogo,
   PiShareFat,
 } from "react-icons/pi";
 import {
@@ -194,7 +194,7 @@ export default function MainHeader({
             variant={"bordered"}
             size="sm"
             className="gap-1"
-            startContent={<PiRobot className="text-lg" />}
+            endContent={<PiOpenAiLogo className="text-lg" />}
           >
             {textModels[modelIdx].name}
           </Button>

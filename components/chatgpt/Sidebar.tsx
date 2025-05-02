@@ -47,7 +47,7 @@ export default function Sidebar({
                     <Button
                       onPress={(e) => {
                         resetConversation();
-                        router.push(`/chatgpt/${c.id}`);
+                        router.push(`/chatgpt/c/${c.id}`);
                         onClose();
                       }}
                       fullWidth

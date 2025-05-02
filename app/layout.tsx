@@ -4,8 +4,8 @@ import { Providers } from "./providers";
 import localFont from "next/font/local";
 
 export const metadata: Metadata = {
-  title: "Violet Brains",
-  description: "ChatGPT, Claude Ai, Gemini, Grok, ...",
+  title: "Hube | دنیای هوش مصنوعی",
+  description: "دسترسی به مدل های هوش مصنوعی ویژه بدون نیاز به خرید اشتراک",
 };
 
 const primary = localFont({

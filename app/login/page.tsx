@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@heroui/button";
 import { Divider } from "@heroui/divider";
 import { Form } from "@heroui/form";
@@ -27,8 +27,24 @@ export default function Login() {
   const [step, setStep] = useState<
     "index" | "login" | "verify" | "register" | "reset-password"
   >("index");
-
+  const [canSendCode, setCanSendCode] = useState(true);
+  const [nextCodeTime, setNextCodeTime] = useState(180);
+  const nextCodeTimer = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+
+  function startNextCodeTimer() {
+    setCanSendCode(false);
+    setTimeout(() => {
+      setCanSendCode(true);
+    }, 180000);
+    if (nextCodeTimer.current) {
+      clearInterval(nextCodeTimer.current);
+    }
+    setNextCodeTime(180);
+    setInterval(() => {
+      setNextCodeTime((state) => state - 1);
+    }, 1000);
+  }
 
   const validatePhone = (p: string) => {
     const phoneRegex = /^09\d{9}$/;
@@ -60,6 +76,7 @@ export default function Login() {
       if (response.data.action === "login") {
         setStep("login");
       } else {
+        startNextCodeTimer();
         setVerifyAction("register");
         setStep("verify");
       }
@@ -105,6 +122,7 @@ export default function Login() {
     setLoading(true);
     const response = await api("/forgot-password", "POST", { phone });
     if (response.ok) {
+      startNextCodeTimer();
       setPassword("");
       setVerifyAction("reset-password");
       setStep("verify");
@@ -257,14 +275,34 @@ export default function Login() {
         <h2 className="text-xl font-medium text-center">{formTitle()}</h2>
         <Form className="flex flex-col gap-3" onSubmit={handleSubmit}>
           {formComponents()}
-          <Button
-            className="w-full"
-            color="primary"
-            type="submit"
-            isLoading={loading}
-          >
-            {submitButtonText()}
-          </Button>
+          <div className="w-full">
+            {!loading && step === "verify" && canSendCode && (
+              <Button
+                className="w-full mb-1"
+                color="secondary"
+                type="button"
+                onPress={(e) => setStep("index")}
+              >
+                ارسال مجدد کد
+              </Button>
+            )}
+            {!loading && step === "verify" && !canSendCode && (
+              <div className="mb-1 text-gray-700 text-xs text-center">
+                ارسال مجدد:{" "}
+                {`${Math.floor(nextCodeTime / 60)}:${String(
+                  nextCodeTime % 60
+                ).padStart(2, "0")}`}
+              </div>
+            )}
+            <Button
+              className="w-full"
+              color="primary"
+              type="submit"
+              isLoading={loading}
+            >
+              {submitButtonText()}
+            </Button>
+          </div>
         </Form>
         <Divider />
         <p dir="ltr" className="text-xs text-center text-gray-600">

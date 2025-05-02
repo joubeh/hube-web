@@ -8,7 +8,6 @@ import {
   PiPencilSimple,
   PiSpeakerHigh,
   PiArrowsClockwise,
-  PiDownload,
 } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -159,11 +158,6 @@ function AssistantMessage({
             <PiArrowsClockwise />
           </Button>
         )}
-        {/* <Button isIconOnly color="default" variant="light" size="sm">
-            <a href={message.content} download target="_blank">
-              <PiDownload />
-            </a>
-          </Button> */}
       </div>
     </div>
   );

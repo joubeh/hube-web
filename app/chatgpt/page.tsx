@@ -46,7 +46,7 @@ export default function NewConversationPage() {
 
   useEffect(() => {
     if (conversation) {
-      router.push(`/chatgpt/${conversation.id}`);
+      router.push(`/chatgpt/c/${conversation.id}`);
     }
   }, [conversation, router]);
 

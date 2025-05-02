@@ -234,7 +234,7 @@ export default function ConversationPage(props: { params: Params }) {
                           radius="full"
                           onPress={(e) =>
                             copy(
-                              `${process.env.NEXT_PUBLIC_APP_URL}/chatgpt/${conversation.id}`
+                              `${process.env.NEXT_PUBLIC_APP_URL}/chatgpt/c/${conversation.id}`
                             )
                           }
                         >
@@ -244,7 +244,7 @@ export default function ConversationPage(props: { params: Params }) {
                       </div>
 
                       <div className="text-blue-700" dir="ltr">
-                        <code>{`${process.env.NEXT_PUBLIC_APP_URL}/chatgpt/${conversation.id}`}</code>
+                        <code>{`${process.env.NEXT_PUBLIC_APP_URL}/chatgpt/c/${conversation.id}`}</code>
                       </div>
                     </div>
                   ) : (
