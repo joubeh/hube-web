@@ -70,7 +70,11 @@ export default function NewConversationPage() {
         )}
         <div className={`w-full bg-background p-2`}>
           <div className="w-full md:max-w-[45rem] mx-auto">
-            <TextInputBar onSubmit={createConversation} isLoading={isLoading} />
+            <TextInputBar
+              onSubmit={createConversation}
+              isLoading={isLoading}
+              showImageGenerationAlert={false}
+            />
           </div>
         </div>
       </div>

@@ -34,9 +34,10 @@ export default function MainHeader({
     setModelIdx,
     isTemporary,
     toggleIsTemporary,
-    resetConversation,
+    isWebSearch,
     isReasoning,
-    isSearch,
+    isImageGeneration,
+    resetConversation,
   } = useConversationStore();
   const router = useRouter();
 
@@ -186,43 +187,48 @@ export default function MainHeader({
         )}
       </div>
 
-      <Dropdown>
-        <DropdownTrigger>
-          <Button
-            radius="full"
-            color={"default"}
-            variant={"bordered"}
-            size="sm"
-            className="gap-1"
-            endContent={<PiOpenAiLogo className="text-lg" />}
-          >
-            {textModels[modelIdx].name}
-          </Button>
-        </DropdownTrigger>
-        <DropdownMenu
-          variant="faded"
-          onAction={(key) => setModelIdx(parseInt(key.toString()))}
+      {isImageGeneration ? (
+        <Button
+          radius="full"
+          color={"default"}
+          variant={"bordered"}
+          size="sm"
+          className="gap-1"
+          endContent={<PiOpenAiLogo className="text-lg" />}
         >
-          {textModels.map((m, idx) => {
-            if (isReasoning && !m.canReasoning) return null;
-            if (isSearch && !m.canWebSearch) return null;
+          DALL·E 3
+        </Button>
+      ) : (
+        <Dropdown>
+          <DropdownTrigger>
+            <Button
+              radius="full"
+              color={"default"}
+              variant={"bordered"}
+              size="sm"
+              className="gap-1"
+              endContent={<PiOpenAiLogo className="text-lg" />}
+            >
+              {textModels[modelIdx].name}
+            </Button>
+          </DropdownTrigger>
+          <DropdownMenu
+            variant="faded"
+            onAction={(key) => setModelIdx(parseInt(key.toString()))}
+          >
+            {textModels.map((m, idx) => {
+              if (isWebSearch && !m.canWebSearch) return null;
+              if (isReasoning && !m.canReasoning) return null;
 
-            return (
-              <DropdownItem
-                key={idx}
-                description={m.description}
-                endContent={
-                  modelIdx === idx ? (
-                    <PiCheckCircle className="text-xl text-default-800 pointer-events-none flex-shrink-0" />
-                  ) : null
-                }
-              >
-                {m.name}
-              </DropdownItem>
-            );
-          })}
-        </DropdownMenu>
-      </Dropdown>
+              return (
+                <DropdownItem key={idx} description={m.description}>
+                  {m.name}
+                </DropdownItem>
+              );
+            })}
+          </DropdownMenu>
+        </Dropdown>
+      )}
     </div>
   );
 }

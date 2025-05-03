@@ -6,7 +6,6 @@ import {
   DrawerContent,
   DrawerHeader,
   DrawerBody,
-  DrawerFooter,
 } from "@heroui/drawer";
 import { Button } from "@heroui/button";
 import { useRouter } from "next/navigation";
@@ -23,7 +22,7 @@ export default function Sidebar({
   conversations: Conversation[];
 }) {
   const router = useRouter();
-  const { resetConversation } = useConversationStore();
+  const { resetConversation, conversation } = useConversationStore();
 
   return (
     <Drawer
@@ -46,15 +45,25 @@ export default function Sidebar({
                   {conversations.map((c) => (
                     <Button
                       onPress={(e) => {
+                        if (conversation && conversation.id === c.id) {
+                          onClose();
+                          return;
+                        }
                         resetConversation();
                         router.push(`/chatgpt/c/${c.id}`);
                         onClose();
                       }}
                       fullWidth
                       key={c.id}
-                      variant="flat"
-                      color="primary"
+                      variant={
+                        conversation && conversation.id === c.id
+                          ? "solid"
+                          : "light"
+                      }
+                      color="default"
                       size="sm"
+                      dir="auto"
+                      className="justify-start"
                     >
                       {c.title}
                     </Button>
@@ -64,14 +73,6 @@ export default function Sidebar({
                 <div>هیچ گفتگویی موجود نیست</div>
               )}
             </DrawerBody>
-            <DrawerFooter>
-              <Button color="danger" variant="light" onPress={onClose}>
-                Close
-              </Button>
-              <Button color="primary" onPress={onClose}>
-                Action
-              </Button>
-            </DrawerFooter>
           </>
         )}
       </DrawerContent>

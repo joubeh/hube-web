@@ -1,4 +1,10 @@
-import { Conversation } from "@/types/chatgpt";
+import {
+  Conversation,
+  ExtraOptions,
+  reasoningEffortOptions,
+  imageSizes,
+  imageQualities,
+} from "@/types/chatgpt";
 import { create } from "zustand";
 import { textModels } from "@/lib/chatgpt/models";
 
@@ -7,10 +13,17 @@ interface ConversationState {
   setConversation: (conversation: Conversation) => void;
   isTemporary: boolean;
   toggleIsTemporary: () => void;
-  isSearch: boolean;
-  toggleIsSearch: () => void;
+  isWebSearch: boolean;
+  toggleIsWebSearch: () => void;
   isReasoning: boolean;
   toggleIsReasoning: () => void;
+  isImageGeneration: boolean;
+  toggleIsImageGeneration: () => void;
+  exteraOptions: ExtraOptions;
+  setExtraOptions: <K extends keyof ExtraOptions>(
+    key: K,
+    value: ExtraOptions[K]
+  ) => void;
   prompt: string;
   setPrompt: (value: string) => void;
   modelIdx: number;
@@ -25,49 +38,87 @@ export const useConversationStore = create<ConversationState>((set) => ({
   isTemporary: false,
   toggleIsTemporary: () =>
     set((state) => ({ isTemporary: !state.isTemporary })),
-  isSearch: false,
-  toggleIsSearch: () =>
-    set((state) => {
-      let newState = {
-        isSearch: !state.isSearch,
-        modelIdx: state.modelIdx,
-        isReasoning: state.isReasoning,
-      };
-      if (!state.isSearch) {
-        newState.modelIdx = textModels.findIndex((model) => model.canWebSearch);
-        if (!textModels[newState.modelIdx].canReasoning)
-          newState.isReasoning = false;
-      }
-      return newState;
-    }),
+  isWebSearch: false,
+  toggleIsWebSearch: () =>
+    set((state) => ({
+      isWebSearch: !state.isWebSearch,
+      isReasoning: false,
+      isImageGeneration: false,
+      exteraOptions: {
+        reasoningEffort: null,
+        imageSize: null,
+        imageQuality: null,
+      },
+      modelIdx: !state.isWebSearch
+        ? textModels.findIndex((model) => model.canWebSearch)
+        : 0,
+    })),
   isReasoning: false,
   toggleIsReasoning: () =>
-    set((state) => {
-      let newState = {
-        isReasoning: !state.isReasoning,
-        modelIdx: state.modelIdx,
-        isSearch: state.isSearch,
-      };
-      if (!state.isReasoning) {
-        newState.modelIdx = textModels.findIndex((model) => model.canReasoning);
-        if (!textModels[newState.modelIdx].canWebSearch)
-          newState.isSearch = false;
-      }
-      return newState;
-    }),
+    set((state) => ({
+      isWebSearch: false,
+      isReasoning: !state.isReasoning,
+      isImageGeneration: false,
+      exteraOptions: {
+        reasoningEffort: reasoningEffortOptions[1],
+        imageSize: null,
+        imageQuality: null,
+      },
+      modelIdx: !state.isReasoning
+        ? textModels.findIndex((model) => model.canReasoning)
+        : 0,
+    })),
+  isImageGeneration: false,
+  toggleIsImageGeneration: () =>
+    set((state) => ({
+      isWebSearch: false,
+      isReasoning: false,
+      isImageGeneration: !state.isImageGeneration,
+      exteraOptions: {
+        reasoningEffort: null,
+        imageSize: imageSizes[0],
+        imageQuality: imageQualities[1],
+      },
+      modelIdx: 0,
+    })),
   prompt: "",
   setPrompt: (value: string) => set((state) => ({ prompt: value })),
   modelIdx: 0,
   setModelIdx: (modelIdx: number) =>
     set((state) => ({
+      ...(!state.isReasoning &&
+        textModels[modelIdx].canReasoning && {
+          isReasoning: true,
+          exteraOptions: {
+            reasoningEffort: reasoningEffortOptions[1],
+            imageSize: null,
+            imageQuality: null,
+          },
+        }),
       modelIdx: modelIdx,
     })),
+  exteraOptions: { reasoningEffort: null, imageSize: null, imageQuality: null },
+  setExtraOptions: <K extends keyof ExtraOptions>(
+    key: K,
+    value: ExtraOptions[K]
+  ) => {
+    console.log({ key, value });
+    set((state) => ({
+      exteraOptions: { ...state.exteraOptions, [key]: value },
+    }));
+  },
   resetConversation: () =>
     set((state) => ({
       conversation: undefined,
       isTemporary: false,
       isSearch: false,
       isReasoning: false,
+      isImageGeneration: false,
+      exteraOptions: {
+        reasoningEffort: null,
+        imageSize: null,
+        imageQuality: null,
+      },
       prompt: "",
       modelIdx: 0,
     })),

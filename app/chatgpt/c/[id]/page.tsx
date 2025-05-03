@@ -16,6 +16,7 @@ import { PiCopy } from "react-icons/pi";
 import { Modal, ModalContent, ModalHeader, ModalBody } from "@heroui/modal";
 import copy from "@/lib/copy";
 import { textModels } from "@/lib/chatgpt/models";
+import { addToast } from "@heroui/toast";
 
 type Params = Promise<{ id: string }>;
 export default function ConversationPage(props: { params: Params }) {
@@ -28,8 +29,10 @@ export default function ConversationPage(props: { params: Params }) {
     setConversation,
     modelIdx,
     isTemporary,
-    isSearch,
+    isWebSearch,
     isReasoning,
+    isImageGeneration,
+    exteraOptions,
   } = useConversationStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -42,6 +45,95 @@ export default function ConversationPage(props: { params: Params }) {
   const [isShareModalOpen, setIsShareModalOpen] = useState(false);
   const [isShareLoading, setIsShareLoading] = useState(false);
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [imageLoading, setImageLoading] = useState(false);
+  const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  async function checkImageStatus(id: number) {
+    const response = await api(`/chatgpt/message/${id}`, "GET");
+    if (response.ok) {
+      if (response.data.status === 404) {
+        addToast({
+          title: "خطا",
+          description:
+            "خطایی پیش آمده و عکس تولید نشد. لطفا دوباره در زمانی دیگر امتحان کنید.",
+          color: "danger",
+        });
+        setImageLoading(false);
+        clearInterval(statusIntervalRef.current!);
+        setIsLoading(false);
+        const newMessages = messages;
+        newMessages.pop();
+        setMessages(newMessages);
+        return;
+      }
+
+      const message = response.data.message;
+      if (message.isDone) {
+        setImageLoading(false);
+        clearInterval(statusIntervalRef.current!);
+        setIsLoading(false);
+        const newMessages = messages;
+        newMessages.push({
+          id: Date.now(),
+          conversationId: conversation!.id,
+          model: "dall-e-3",
+          role: "user",
+          content: message.content,
+          useWebSearch: message.isWebSearch,
+          useReasoning: message.isReasoning,
+          reasoningEffort: message.reasoningEffort,
+          imageSize: message.imageSize,
+          imageQuality: message.imageQuality,
+          type: "image",
+        });
+        setMessages(newMessages);
+      }
+    }
+  }
+
+  async function generateImage(inputText: string) {
+    if (!conversation) return;
+    if (isLoading) return;
+    setIsLoading(true);
+    setImageLoading(false);
+    if (statusIntervalRef.current) {
+      clearInterval(statusIntervalRef.current);
+    }
+    statusIntervalRef.current = null;
+    const response = await api(
+      `/chatgpt/conversation/${conversation.id}/image/generate`,
+      "POST",
+      {
+        prompt: inputText,
+        size: exteraOptions.imageSize,
+        quality: exteraOptions.imageQuality,
+      }
+    );
+
+    if (response.ok) {
+      const newMessages = messages;
+      newMessages.push({
+        id: Date.now(),
+        conversationId: conversation.id,
+        model: "dall-e-3",
+        role: "user",
+        content: inputText,
+        useWebSearch: isWebSearch,
+        useReasoning: isReasoning,
+        reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+        imageSize: exteraOptions.imageSize,
+        imageQuality: exteraOptions.imageQuality,
+        type: "text",
+      });
+      setMessages(newMessages);
+      setImageLoading(true);
+      statusIntervalRef.current = setInterval(() => {
+        checkImageStatus(response.data.id);
+      }, 5000);
+    } else {
+      setIsLoading(false);
+    }
+  }
 
   async function loadConversations() {
     const response = await api("/chatgpt/conversations", "GET");
@@ -61,9 +153,12 @@ export default function ConversationPage(props: { params: Params }) {
       model: textModels[modelIdx].model,
       role: "user",
       content: inputText,
-      useWebSearch: isSearch,
+      useWebSearch: isWebSearch,
       useReasoning: isReasoning,
-      reasoningEffort: isReasoning ? "medium" : null,
+      reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+      imageSize: exteraOptions.imageSize,
+      imageQuality: exteraOptions.imageQuality,
+      type: "text",
     });
     setMessages(newMessages);
 
@@ -79,9 +174,9 @@ export default function ConversationPage(props: { params: Params }) {
           body: JSON.stringify({
             prompt: inputText,
             model: textModels[modelIdx].model,
-            useWebSearch: isSearch,
+            useWebSearch: isWebSearch,
             useReasoning: isReasoning,
-            reasoningEffort: isReasoning ? "medium" : null,
+            reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
           }),
         }
       );
@@ -106,9 +201,12 @@ export default function ConversationPage(props: { params: Params }) {
           model: textModels[modelIdx].model,
           role: "assistant",
           content: fullResponse,
-          useWebSearch: isSearch,
+          useWebSearch: isWebSearch,
           useReasoning: isReasoning,
-          reasoningEffort: isReasoning ? "medium" : null,
+          reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+          imageSize: exteraOptions.imageSize,
+          imageQuality: exteraOptions.imageQuality,
+          type: "text",
         });
         setMessages(newMessages);
         setProcessingMessage("");
@@ -161,10 +259,15 @@ export default function ConversationPage(props: { params: Params }) {
     if (conversation) {
       setIsPageLoading(false);
       const inputText: string = prompt;
-      sendMessage(inputText);
+      if (isImageGeneration) {
+        generateImage(inputText);
+      } else {
+        sendMessage(inputText);
+      }
       setPrompt("");
     } else {
       initConversation();
+      loadConversations();
     }
   }, [conversation, initConversation, setPrompt]);
 
@@ -191,12 +294,17 @@ export default function ConversationPage(props: { params: Params }) {
           messages={messages}
           processingMessage={processingMessage}
           isOwner={isOwner}
+          imageLoading={imageLoading}
         />
 
         <div className="w-full fixed bottom-0 right-0 bg-background p-2 z-50">
           <div className="w-full md:max-w-[45rem] mx-auto">
             {isOwner && (
-              <TextInputBar onSubmit={sendMessage} isLoading={isLoading} />
+              <TextInputBar
+                onSubmit={isImageGeneration ? generateImage : sendMessage}
+                isLoading={isLoading}
+                showImageGenerationAlert={true}
+              />
             )}
             <div
               className={`text-gray-700 text-xs text-center ${

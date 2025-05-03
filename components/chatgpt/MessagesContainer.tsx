@@ -8,12 +8,16 @@ import {
   PiPencilSimple,
   PiSpeakerHigh,
   PiArrowsClockwise,
+  PiDownload,
+  PiPaintBrush,
 } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import copy from "@/lib/copy";
+import { Spinner } from "@heroui/spinner";
+import { Alert } from "@heroui/alert";
 
 function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -135,6 +139,32 @@ function AssistantMessage({
   message: Message;
   isOwner: boolean;
 }) {
+  if (message.type === "image") {
+    return (
+      <div>
+        <img
+          src={message.content}
+          alt={`image ${message.id}`}
+          className="block w-full md:max-w-[45rem]"
+        />
+        <div dir="ltr">
+          <Button isIconOnly color="default" variant="light" size="sm">
+            <PiDownload />
+          </Button>
+          {isOwner && (
+            <>
+              <Button isIconOnly color="default" variant="light" size="sm">
+                <PiPaintBrush />
+              </Button>
+              <Button isIconOnly color="default" variant="light" size="sm">
+                <PiArrowsClockwise />
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div>
       <div>
@@ -167,10 +197,12 @@ const MessagesContainer = memo(function ChatMessages({
   messages,
   processingMessage,
   isOwner,
+  imageLoading,
 }: {
   messages: Message[];
   processingMessage: string;
   isOwner: boolean;
+  imageLoading: boolean;
 }) {
   return (
     <div className="flex flex-col gap-4 w-full md:max-w-[45rem] px-4">
@@ -188,6 +220,16 @@ const MessagesContainer = memo(function ChatMessages({
         );
       })}
       {processingMessage && <MarkdownRenderer content={processingMessage} />}
+      {imageLoading && (
+        <div className="w-full flex flex-col items-center justify-center gap-3">
+          <Spinner size="lg" />
+          <p className="text-center max-w-xs text-sm text-gray-700">
+            عکس شما در حال تولید شدن است. تولید عکس ممکن است کمی زمان بر باشد.
+            اگر نمیخواهید صبر کنید میتوانید صفحه را ببندید و عکس تولید شده را
+            بعدا در گالری خود مشاهده کنید
+          </p>
+        </div>
+      )}
     </div>
   );
 });

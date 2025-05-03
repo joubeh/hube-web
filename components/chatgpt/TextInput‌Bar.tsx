@@ -10,28 +10,46 @@ import {
   PiMicrophone,
   PiGlobeSimple,
   PiPaintBrush,
+  PiInfo,
 } from "react-icons/pi";
 import { useConversationStore } from "@/store/chatgpt";
-import { useRouter } from "next/navigation";
+import {
+  Dropdown,
+  DropdownTrigger,
+  DropdownMenu,
+  DropdownItem,
+} from "@heroui/dropdown";
+import {
+  ReasoningEffort,
+  ImageSize,
+  ImageQuality,
+  reasoningEffortOptions,
+  imageSizes,
+  imageQualities,
+} from "@/types/chatgpt";
 
 export default function TextInputBar({
   isLoading,
   onSubmit,
+  showImageGenerationAlert,
 }: {
   isLoading: boolean;
   onSubmit: (inputText: string) => void;
+  showImageGenerationAlert: boolean;
 }) {
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const {
     isTemporary,
-    isSearch,
-    toggleIsSearch,
+    isWebSearch,
+    toggleIsWebSearch,
     isReasoning,
     toggleIsReasoning,
-    resetConversation,
+    isImageGeneration,
+    toggleIsImageGeneration,
+    exteraOptions,
+    setExtraOptions,
   } = useConversationStore();
-  const router = useRouter();
 
   function adjustHeight() {
     const textarea = textareaRef.current;
@@ -54,11 +72,6 @@ export default function TextInputBar({
     }
   }
 
-  function imageGeneration() {
-    resetConversation();
-    router.push("/chatgpt/image");
-  }
-
   return (
     <form
       onSubmit={handleSubmit}
@@ -66,6 +79,15 @@ export default function TextInputBar({
         isTemporary && "bg-zinc-800 text-white dark"
       }`}
     >
+      {showImageGenerationAlert && isImageGeneration && (
+        <div className="bg-white text-gray-700 flex text-xs gap-1 mb-1">
+          <PiInfo className="text-lg" />
+          <span>
+            مدل تولید عکس به پیام های قبلی دسترسی ندارد. لطفا عکس را کامل توصیف
+            کنید.
+          </span>
+        </div>
+      )}
       <textarea
         ref={textareaRef}
         value={text}
@@ -81,7 +103,9 @@ export default function TextInputBar({
           border: "none",
         }}
         dir={text ? "auto" : "rtl"}
-        placeholder="هرچی میخوای بپرس"
+        placeholder={
+          !isImageGeneration ? "هرچی میخوای بپرس" : "عکس را توصیف کنید"
+        }
       />
       <div className="flex items-center justify-between mt-2">
         <div className="flex items-center justify-cneter text-sm gap-1">
@@ -95,83 +119,176 @@ export default function TextInputBar({
             <PiPlus className="text-lg" />
           </Button>
 
-          <div className="hidden md:block">
-            <Button
-              onPress={toggleIsSearch}
-              radius="full"
-              color={isSearch ? "primary" : "default"}
-              variant={isSearch ? "flat" : "bordered"}
-              size="sm"
-              className="gap-1"
-              startContent={<PiGlobeSimple className="text-lg" />}
-            >
-              جستجو وب
-            </Button>
-          </div>
-          <div className="block md:hidden">
-            <Button
-              onPress={toggleIsSearch}
-              isIconOnly
-              radius="full"
-              color={isSearch ? "primary" : "default"}
-              variant={isSearch ? "flat" : "bordered"}
-              size="sm"
-            >
-              <PiGlobeSimple className="text-lg" />
-            </Button>
-          </div>
+          {!isReasoning && !isImageGeneration && (
+            <>
+              <div className="hidden md:block">
+                <Button
+                  onPress={toggleIsWebSearch}
+                  radius="full"
+                  color={isWebSearch ? "primary" : "default"}
+                  variant={isWebSearch ? "flat" : "bordered"}
+                  size="sm"
+                  className="gap-1"
+                  startContent={<PiGlobeSimple className="text-lg" />}
+                >
+                  جستجو وب
+                </Button>
+              </div>
+              <div className="block md:hidden">
+                <Button
+                  onPress={toggleIsWebSearch}
+                  isIconOnly
+                  radius="full"
+                  color={isWebSearch ? "primary" : "default"}
+                  variant={isWebSearch ? "flat" : "bordered"}
+                  size="sm"
+                >
+                  <PiGlobeSimple className="text-lg" />
+                </Button>
+              </div>
+            </>
+          )}
 
-          <div className="hidden md:block">
-            <Button
-              onPress={toggleIsReasoning}
-              radius="full"
-              color={isReasoning ? "primary" : "default"}
-              variant={isReasoning ? "flat" : "bordered"}
-              size="sm"
-              className="gap-1"
-              startContent={<PiLightbulb className="text-lg" />}
-            >
-              تفکر استدلالی
-            </Button>
-          </div>
-          <div className="block md:hidden">
-            <Button
-              onPress={toggleIsReasoning}
-              isIconOnly
-              radius="full"
-              color={isReasoning ? "primary" : "default"}
-              variant={isReasoning ? "flat" : "bordered"}
-              size="sm"
-            >
-              <PiLightbulb className="text-lg" />
-            </Button>
-          </div>
+          {!isWebSearch && !isImageGeneration && (
+            <>
+              <div className="hidden md:block">
+                <Button
+                  onPress={toggleIsReasoning}
+                  radius="full"
+                  color={isReasoning ? "primary" : "default"}
+                  variant={isReasoning ? "flat" : "bordered"}
+                  size="sm"
+                  className="gap-1"
+                  startContent={<PiLightbulb className="text-lg" />}
+                >
+                  تفکر استدلالی
+                </Button>
+              </div>
+              <div className="block md:hidden">
+                <Button
+                  onPress={toggleIsReasoning}
+                  isIconOnly
+                  radius="full"
+                  color={isReasoning ? "primary" : "default"}
+                  variant={isReasoning ? "flat" : "bordered"}
+                  size="sm"
+                >
+                  <PiLightbulb className="text-lg" />
+                </Button>
+              </div>
+            </>
+          )}
+          {isReasoning && (
+            <Dropdown dir="ltr">
+              <DropdownTrigger>
+                <Button
+                  radius="full"
+                  color="default"
+                  variant="bordered"
+                  size="sm"
+                  dir="rtl"
+                >
+                  تلاش: {exteraOptions.reasoningEffort}
+                </Button>
+              </DropdownTrigger>
+              <DropdownMenu
+                variant="faded"
+                onAction={(key) =>
+                  setExtraOptions(
+                    "reasoningEffort",
+                    key.toString() as ReasoningEffort
+                  )
+                }
+              >
+                {reasoningEffortOptions.map((i) => {
+                  return <DropdownItem key={i}>{i}</DropdownItem>;
+                })}
+              </DropdownMenu>
+            </Dropdown>
+          )}
 
-          <div className="hidden md:block">
-            <Button
-              onPress={imageGeneration}
-              radius="full"
-              color="default"
-              variant="bordered"
-              size="sm"
-              className="gap-1"
-              startContent={<PiPaintBrush className="text-lg" />}
-            >
-              تولید عکس
-            </Button>
-          </div>
-          <div className="block md:hidden">
-            <Button
-              onPress={imageGeneration}
-              isIconOnly
-              radius="full"
-              color="default"
-              variant="bordered"
-              size="sm"
-            >
-              <PiPaintBrush className="text-lg" />
-            </Button>
-          </div>
+          {!isWebSearch && !isReasoning && (
+            <>
+              <div className="hidden md:block">
+                <Button
+                  onPress={toggleIsImageGeneration}
+                  radius="full"
+                  color={isImageGeneration ? "primary" : "default"}
+                  variant={isImageGeneration ? "flat" : "bordered"}
+                  size="sm"
+                  className="gap-1"
+                  startContent={<PiPaintBrush className="text-lg" />}
+                >
+                  تولید عکس
+                </Button>
+              </div>
+              <div className="block md:hidden">
+                <Button
+                  onPress={toggleIsImageGeneration}
+                  color={isImageGeneration ? "primary" : "default"}
+                  variant={isImageGeneration ? "flat" : "bordered"}
+                  isIconOnly
+                  radius="full"
+                  size="sm"
+                >
+                  <PiPaintBrush className="text-lg" />
+                </Button>
+              </div>
+            </>
+          )}
+          {isImageGeneration && (
+            <>
+              <Dropdown dir="ltr">
+                <DropdownTrigger>
+                  <Button
+                    radius="full"
+                    color="default"
+                    variant="bordered"
+                    size="sm"
+                    dir="rtl"
+                  >
+                    اندازه: {exteraOptions.imageSize}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  variant="faded"
+                  onAction={(key) =>
+                    setExtraOptions("imageSize", key.toString() as ImageSize)
+                  }
+                >
+                  {imageSizes.map((i) => {
+                    return <DropdownItem key={i}>{i}</DropdownItem>;
+                  })}
+                </DropdownMenu>
+              </Dropdown>
+              <Dropdown dir="ltr">
+                <DropdownTrigger>
+                  <Button
+                    radius="full"
+                    color="default"
+                    variant="bordered"
+                    size="sm"
+                    dir="rtl"
+                  >
+                    کیفیت: {exteraOptions.imageQuality}
+                  </Button>
+                </DropdownTrigger>
+                <DropdownMenu
+                  variant="faded"
+                  onAction={(key) =>
+                    setExtraOptions(
+                      "imageQuality",
+                      key.toString() as ImageQuality
+                    )
+                  }
+                >
+                  {imageQualities.map((i) => {
+                    return <DropdownItem key={i}>{i}</DropdownItem>;
+                  })}
+                </DropdownMenu>
+              </Dropdown>
+            </>
+          )}
         </div>
         <div className="flex items-center justify-cneter gap-1">
           <Button
