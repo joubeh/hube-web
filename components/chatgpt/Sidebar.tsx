@@ -29,7 +29,6 @@ export default function Sidebar({
       isOpen={isSidebarOpen}
       onOpenChange={setIsSidebarOpen}
       placement="right"
-      backdrop="blur"
       size="xs"
       radius="none"
     >

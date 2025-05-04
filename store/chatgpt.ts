@@ -4,6 +4,7 @@ import {
   reasoningEffortOptions,
   imageSizes,
   imageQualities,
+  File,
 } from "@/types/chatgpt";
 import { create } from "zustand";
 import { textModels } from "@/lib/chatgpt/models";
@@ -28,6 +29,10 @@ interface ConversationState {
   setPrompt: (value: string) => void;
   modelIdx: number;
   setModelIdx: (modelIdx: number) => void;
+  files: File[];
+  addFile: (value: File) => void;
+  removeFile: (id: number) => void;
+  resetFiles: () => void;
   resetConversation: () => void;
 }
 
@@ -102,11 +107,16 @@ export const useConversationStore = create<ConversationState>((set) => ({
     key: K,
     value: ExtraOptions[K]
   ) => {
-    console.log({ key, value });
     set((state) => ({
       exteraOptions: { ...state.exteraOptions, [key]: value },
     }));
   },
+  files: [],
+  addFile: (value: File) =>
+    set((state) => ({ files: [...state.files, value] })),
+  removeFile: (id: number) =>
+    set((state) => ({ files: state.files.filter((file) => file.id !== id) })),
+  resetFiles: () => set((state) => ({ files: [] })),
   resetConversation: () =>
     set((state) => ({
       conversation: undefined,
@@ -121,5 +131,6 @@ export const useConversationStore = create<ConversationState>((set) => ({
       },
       prompt: "",
       modelIdx: 0,
+      files: [],
     })),
 }));

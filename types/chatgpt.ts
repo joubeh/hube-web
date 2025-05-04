@@ -19,6 +19,14 @@ export type Conversation = {
   isPublic: boolean;
 };
 
+export type File = {
+  id: number;
+  url: string;
+  type: "image" | "file";
+  expiresAt: string | null;
+  processing: boolean | null;
+};
+
 export type Message = {
   id: number;
   conversationId: string;

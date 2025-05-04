@@ -33,6 +33,8 @@ export default function ConversationPage(props: { params: Params }) {
     isReasoning,
     isImageGeneration,
     exteraOptions,
+    files,
+    resetFiles,
   } = useConversationStore();
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -159,6 +161,7 @@ export default function ConversationPage(props: { params: Params }) {
       imageSize: exteraOptions.imageSize,
       imageQuality: exteraOptions.imageQuality,
       type: "text",
+      ...(files.length > 0 && { files: files }),
     });
     setMessages(newMessages);
 
@@ -177,6 +180,7 @@ export default function ConversationPage(props: { params: Params }) {
             useWebSearch: isWebSearch,
             useReasoning: isReasoning,
             reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+            ...(files.length > 0 && { files: files.map((f) => f.id) }),
           }),
         }
       );
@@ -215,6 +219,7 @@ export default function ConversationPage(props: { params: Params }) {
       console.log("something went wrong");
       console.log(err);
     }
+    resetFiles();
     setIsLoading(false);
     if (conversations.length === 0) {
       loadConversations();
@@ -301,6 +306,7 @@ export default function ConversationPage(props: { params: Params }) {
           <div className="w-full md:max-w-[45rem] mx-auto">
             {isOwner && (
               <TextInputBar
+                setIsLoading={setIsLoading}
                 onSubmit={isImageGeneration ? generateImage : sendMessage}
                 isLoading={isLoading}
                 showImageGenerationAlert={true}

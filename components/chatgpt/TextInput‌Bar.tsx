@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Button } from "@heroui/button";
 import {
   PiWaveformBold,
@@ -11,6 +11,8 @@ import {
   PiGlobeSimple,
   PiPaintBrush,
   PiInfo,
+  PiImage,
+  PiFile,
 } from "react-icons/pi";
 import { useConversationStore } from "@/store/chatgpt";
 import {
@@ -27,15 +29,47 @@ import {
   imageSizes,
   imageQualities,
 } from "@/types/chatgpt";
+import { Spinner } from "@heroui/spinner";
+import { addToast } from "@heroui/toast";
+import { Popover, PopoverTrigger, PopoverContent } from "@heroui/popover";
+
+const imagesExtensions = [".png", ".jpeg", ".jpg", ".webp"];
+const allowedExtensions = [
+  ".c",
+  ".cpp",
+  ".cs",
+  ".css",
+  ".doc",
+  ".docx",
+  ".go",
+  ".html",
+  ".java",
+  ".js",
+  ".json",
+  ".md",
+  ".pdf",
+  ".php",
+  ".pptx",
+  ".py",
+  ".rb",
+  ".sh",
+  ".tex",
+  ".ts",
+  ".txt",
+  ...imagesExtensions,
+];
+const acceptString = allowedExtensions.join(",");
 
 export default function TextInputBar({
   isLoading,
   onSubmit,
   showImageGenerationAlert,
+  setIsLoading,
 }: {
   isLoading: boolean;
   onSubmit: (inputText: string) => void;
   showImageGenerationAlert: boolean;
+  setIsLoading: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const [text, setText] = useState<string>("");
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -49,6 +83,9 @@ export default function TextInputBar({
     toggleIsImageGeneration,
     exteraOptions,
     setExtraOptions,
+    files,
+    addFile,
+    removeFile,
   } = useConversationStore();
 
   function adjustHeight() {
@@ -59,10 +96,6 @@ export default function TextInputBar({
     }
   }
 
-  useEffect(() => {
-    adjustHeight();
-  }, [text]);
-
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (text.trim()) {
@@ -72,6 +105,103 @@ export default function TextInputBar({
     }
   }
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getFileExtension = (filename: string): string | null => {
+    const lastDotIndex = filename.lastIndexOf(".");
+    if (lastDotIndex > 0) {
+      return filename.substring(lastDotIndex).toLowerCase();
+    }
+    return null;
+  };
+
+  const uploadFile = async (file: File) => {
+    setIsLoading(true);
+    const type = imagesExtensions.includes(getFileExtension(file.name) ?? "")
+      ? "image"
+      : "file";
+
+    const fileId = -1 * Date.now();
+    addFile({
+      id: fileId,
+      url: "pending",
+      type: type,
+      expiresAt: `${Date.now()}`,
+      processing: true,
+    });
+
+    const formData = new FormData();
+    if (type === "image") {
+      formData.append("image", file);
+    } else {
+      formData.append("file", file);
+    }
+
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/chatgpt/file/upload`,
+        {
+          method: "POST",
+          body: formData,
+          headers: {
+            Accept: "application/json",
+            Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        removeFile(fileId);
+        addFile(data.file);
+      } else {
+        throw new Error(data?.error || "خطایی پیش آمده دوباره تلاش کنید");
+      }
+    } catch (error: any) {
+      removeFile(fileId);
+      addToast({
+        title: "خطا",
+        description: error?.message || "خطایی پیش آمده دوباره تلاش کنید",
+        color: "danger",
+      });
+    }
+    removeFile(fileId);
+    // IMPORTANT: Reset the file input value so selecting the same file again works
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    setIsLoading(false);
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (file) {
+      const extension = getFileExtension(file.name);
+      if (!extension || !allowedExtensions.includes(extension)) {
+        addToast({
+          title: "خطا",
+          description: `پسوندهای مجاز: ${allowedExtensions.join(", ")}`,
+          color: "danger",
+        });
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+      uploadFile(file);
+    } else {
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  useEffect(() => {
+    adjustHeight();
+  }, [text]);
+
   return (
     <form
       onSubmit={handleSubmit}
@@ -79,13 +209,75 @@ export default function TextInputBar({
         isTemporary && "bg-zinc-800 text-white dark"
       }`}
     >
+      <input
+        type="file"
+        ref={fileInputRef}
+        onChange={handleFileChange}
+        style={{ display: "none" }}
+        disabled={isLoading}
+        accept={acceptString}
+      />
+
+      {files.length > 0 && (
+        <>
+          <div className="flex items-center gap-1 mb-3">
+            {files.map((f) => (
+              <Popover
+                key={f.id}
+                showArrow
+                backdrop={"opaque"}
+                offset={10}
+                placement="top"
+                size="sm"
+              >
+                <PopoverTrigger>
+                  <Button
+                    size="sm"
+                    variant="flat"
+                    color={f.processing ? "default" : "primary"}
+                    className="gap-1"
+                    radius="full"
+                    startContent={
+                      f.processing ? (
+                        <Spinner size="sm" color="primary" />
+                      ) : f.type === "image" ? (
+                        <PiImage className="text-xl shrink-0" />
+                      ) : (
+                        <PiFile className="text-xl shrink-0" />
+                      )
+                    }
+                  >
+                    {f.type === "image" ? "عکس" : "فایل"}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent>
+                  {(titleProps) => (
+                    <div className="px-1 py-2 w-full">
+                      <Button
+                        onPress={(e) => removeFile(f.id)}
+                        size="sm"
+                        color={f.processing ? "default" : "danger"}
+                        isDisabled={f.processing ?? false}
+                      >
+                        {f.processing ? "در حال آپلود..." : "حذف"}
+                      </Button>
+                    </div>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ))}
+          </div>
+          <div className="bg-white text-gray-700 flex text-xs gap-1 mb-1">
+            <PiInfo className="text-lg" />
+            <span>فایل های آپلودی بعد از ۶ ساعت غیرفعال میشوند</span>
+          </div>
+        </>
+      )}
+
       {showImageGenerationAlert && isImageGeneration && (
         <div className="bg-white text-gray-700 flex text-xs gap-1 mb-1">
-          <PiInfo className="text-lg" />
-          <span>
-            مدل تولید عکس به پیام های قبلی دسترسی ندارد. لطفا عکس را کامل توصیف
-            کنید.
-          </span>
+          <PiInfo className="text-lg shrink-0" />
+          <span>مدل تولید عکس به پیام های قبلی دسترسی ندارد</span>
         </div>
       )}
       <textarea
@@ -115,6 +307,9 @@ export default function TextInputBar({
             color="default"
             variant="bordered"
             size="sm"
+            onPress={(e) => {
+              if (!isImageGeneration) fileInputRef.current?.click();
+            }}
           >
             <PiPlus className="text-lg" />
           </Button>

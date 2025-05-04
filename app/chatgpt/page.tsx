@@ -8,6 +8,7 @@ import TextInputBar from "@/components/chatgpt/TextInput‌Bar";
 import Sidebar from "@/components/chatgpt/Sidebar";
 import { Conversation } from "@/types/chatgpt";
 import MainHeader from "@/components/chatgpt/MainHeader";
+import { PiInfo } from "react-icons/pi";
 
 export default function NewConversationPage() {
   const { isTemporary, setPrompt, conversation, setConversation } =
@@ -74,6 +75,7 @@ export default function NewConversationPage() {
               onSubmit={createConversation}
               isLoading={isLoading}
               showImageGenerationAlert={false}
+              setIsLoading={setIsLoading}
             />
           </div>
         </div>
