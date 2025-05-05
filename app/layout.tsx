@@ -1,24 +1,23 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import localFont from "next/font/local";
+import { Inter, Vazirmatn } from "next/font/google";
+
+const inter = Inter({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-inter",
+});
+const vazirmatn = Vazirmatn({
+  subsets: ["arabic"],
+  display: "swap",
+  variable: "--font-vazir",
+});
 
 export const metadata: Metadata = {
   title: "Hube | دنیای هوش مصنوعی",
   description: "دسترسی به مدل های هوش مصنوعی ویژه بدون نیاز به خرید اشتراک",
 };
-
-const primary = localFont({
-  src: [
-    {
-      path: "../public/assets/Vazir.woff2",
-      weight: "400",
-      style: "normal",
-    },
-  ],
-  display: "swap",
-  variable: "--font-primary",
-});
 
 export default function RootLayout({
   children,
@@ -33,7 +32,7 @@ export default function RootLayout({
           content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
         />
       </head>
-      <body className={`${primary.className}`} dir="rtl">
+      <body dir="rtl" className="font-main">
         <Providers>{children}</Providers>
       </body>
     </html>

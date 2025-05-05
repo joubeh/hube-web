@@ -96,8 +96,8 @@ export default function TextInputBar({
     }
   }
 
-  function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function handleSubmit(e?: React.FormEvent<HTMLFormElement>) {
+    e?.preventDefault();
     if (text.trim()) {
       const input: string = text;
       onSubmit(input);
@@ -205,7 +205,7 @@ export default function TextInputBar({
   return (
     <form
       onSubmit={handleSubmit}
-      className={`px-4 py-3 shadow md:shadow-lg rounded-3xl border border-gray-300 w-full ${
+      className={`px-2 py-2 md:px-4 md:py-3 shadow md:shadow-lg rounded-3xl border border-gray-300 w-full ${
         isTemporary && "bg-zinc-800 text-white dark"
       }`}
     >
@@ -284,6 +284,12 @@ export default function TextInputBar({
         ref={textareaRef}
         value={text}
         onChange={(e) => setText(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSubmit();
+          }
+        }}
         rows={1}
         className={`px-1 pt-1 pb-2 md:px-2 ${isTemporary && "bg-zinc-800"}`}
         style={{

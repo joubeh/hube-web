@@ -1,7 +1,7 @@
 "use client";
 
 import { Message } from "@/types/chatgpt";
-import { memo } from "react";
+import { memo, useState } from "react";
 import { Button } from "@heroui/button";
 import {
   PiCopy,
@@ -10,6 +10,10 @@ import {
   PiArrowsClockwise,
   PiDownload,
   PiPaintBrush,
+  PiCheck,
+  PiX,
+  PiImage,
+  PiFile,
 } from "react-icons/pi";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -17,7 +21,6 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import copy from "@/lib/copy";
 import { Spinner } from "@heroui/spinner";
-import { Alert } from "@heroui/alert";
 
 function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -102,6 +105,27 @@ function UserMessage({
 }) {
   return (
     <div>
+      {message.files.length > 0 && (
+        <div className="flex items-center gap-1 mb-1">
+          {message.files.map((f) => (
+            <a key={f.id} href={f.url} target="_blank">
+              <Button
+                isIconOnly
+                radius="full"
+                color="primary"
+                variant="faded"
+                size="sm"
+              >
+                {f.type === "image" ? (
+                  <PiImage className="text-base" />
+                ) : (
+                  <PiFile className="text-base" />
+                )}
+              </Button>
+            </a>
+          ))}
+        </div>
+      )}
       <div className="flex justify-start">
         <div className="bg-gray-100 py-3 px-4 rounded-3xl">
           <div

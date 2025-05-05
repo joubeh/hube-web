@@ -49,6 +49,7 @@ export default function ConversationPage(props: { params: Params }) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [imageLoading, setImageLoading] = useState(false);
   const statusIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
 
   async function checkImageStatus(id: number) {
     const response = await api(`/chatgpt/message/${id}`, "GET");
@@ -74,21 +75,23 @@ export default function ConversationPage(props: { params: Params }) {
         setImageLoading(false);
         clearInterval(statusIntervalRef.current!);
         setIsLoading(false);
-        const newMessages = messages;
-        newMessages.push({
-          id: Date.now(),
-          conversationId: conversation!.id,
-          model: "dall-e-3",
-          role: "user",
-          content: message.content,
-          useWebSearch: message.isWebSearch,
-          useReasoning: message.isReasoning,
-          reasoningEffort: message.reasoningEffort,
-          imageSize: message.imageSize,
-          imageQuality: message.imageQuality,
-          type: "image",
-        });
-        setMessages(newMessages);
+        setMessages([
+          ...messages,
+          {
+            id: Date.now(),
+            conversationId: conversation!.id,
+            model: "dall-e-3",
+            role: "assistant",
+            content: message.content,
+            useWebSearch: message.isWebSearch,
+            useReasoning: message.isReasoning,
+            reasoningEffort: message.reasoningEffort,
+            imageSize: message.imageSize,
+            imageQuality: message.imageQuality,
+            type: "image",
+            files: [],
+          },
+        ]);
       }
     }
   }
@@ -126,6 +129,7 @@ export default function ConversationPage(props: { params: Params }) {
         imageSize: exteraOptions.imageSize,
         imageQuality: exteraOptions.imageQuality,
         type: "text",
+        files: [],
       });
       setMessages(newMessages);
       setImageLoading(true);
@@ -148,22 +152,23 @@ export default function ConversationPage(props: { params: Params }) {
     if (!conversation) return;
     if (isLoading) return;
     setIsLoading(true);
-    const newMessages = messages;
-    newMessages.push({
-      id: Date.now(),
-      conversationId: conversation.id,
-      model: textModels[modelIdx].model,
-      role: "user",
-      content: inputText,
-      useWebSearch: isWebSearch,
-      useReasoning: isReasoning,
-      reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
-      imageSize: exteraOptions.imageSize,
-      imageQuality: exteraOptions.imageQuality,
-      type: "text",
-      ...(files.length > 0 && { files: files }),
-    });
-    setMessages(newMessages);
+    setMessages((state) => [
+      ...state,
+      {
+        id: Date.now(),
+        conversationId: conversation.id,
+        model: textModels[modelIdx].model,
+        role: "user",
+        content: inputText,
+        useWebSearch: isWebSearch,
+        useReasoning: isReasoning,
+        reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+        imageSize: exteraOptions.imageSize,
+        imageQuality: exteraOptions.imageQuality,
+        type: "text",
+        files: files.length > 0 ? files : [],
+      },
+    ]);
 
     try {
       const res = await fetch(
@@ -198,21 +203,23 @@ export default function ConversationPage(props: { params: Params }) {
           fullResponse += chunk;
           setProcessingMessage((state) => state + chunk);
         }
-
-        newMessages.push({
-          id: Date.now(),
-          conversationId: conversation.id,
-          model: textModels[modelIdx].model,
-          role: "assistant",
-          content: fullResponse,
-          useWebSearch: isWebSearch,
-          useReasoning: isReasoning,
-          reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
-          imageSize: exteraOptions.imageSize,
-          imageQuality: exteraOptions.imageQuality,
-          type: "text",
-        });
-        setMessages(newMessages);
+        setMessages((state) => [
+          ...state,
+          {
+            id: Date.now(),
+            conversationId: conversation.id,
+            model: textModels[modelIdx].model,
+            role: "assistant",
+            content: fullResponse,
+            useWebSearch: isWebSearch,
+            useReasoning: isReasoning,
+            reasoningEffort: isReasoning ? exteraOptions.reasoningEffort : null,
+            imageSize: exteraOptions.imageSize,
+            imageQuality: exteraOptions.imageQuality,
+            type: "text",
+            files: [],
+          },
+        ]);
         setProcessingMessage("");
       }
     } catch (err) {
@@ -231,8 +238,24 @@ export default function ConversationPage(props: { params: Params }) {
     setIsPageLoading(true);
     const response = await api(`/chatgpt/conversation/${id}`, "GET");
     if (response.ok) {
+      console.log(response.data.files);
+      const msgArr = response.data.messages.map((msg: Message) => ({
+        ...msg,
+        files: [] as File[],
+      }));
+
+      for (let i = 0; i < response.data.files.length; i++) {
+        for (let j = 0; j < msgArr.length; j++) {
+          if (response.data.files[i].messageId === msgArr[j].id) {
+            msgArr[j].files.push(response.data.files[i]);
+            break;
+          }
+        }
+      }
+      console.log(msgArr);
+
       setIsOwner(response.data.isOwner);
-      setMessages(response.data.messages);
+      setMessages(msgArr);
       setConversation(response.data.conversation);
     } else {
       router.push("/chatgpt");
@@ -276,6 +299,12 @@ export default function ConversationPage(props: { params: Params }) {
     }
   }, [conversation, initConversation, setPrompt]);
 
+  useEffect(() => {
+    if (messages.length && messages[messages.length - 1].role === "user") {
+      endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages]);
+
   if (isPageLoading || !conversation) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -290,17 +319,15 @@ export default function ConversationPage(props: { params: Params }) {
         setIsSidebarOpen={setIsSidebarOpen}
         setIsShareModalOpen={setIsShareModalOpen}
       />
-      <div
-        className={`flex flex-col gap-4 items-center justify-between pt-[3.5rem] ${
-          isOwner ? "pb-[10rem]" : "pb-[3rem]"
-        } px-0 flex-1`}
-      >
+      <div className="flex flex-col gap-4 items-center justify-between pt-[3.5rem] px-0 flex-1">
         <MessagesContainer
           messages={messages}
           processingMessage={processingMessage}
           isOwner={isOwner}
           imageLoading={imageLoading}
         />
+        <div className={isOwner ? "pb-[15rem]" : "pb-[3rem]"} />
+        <div ref={endOfMessagesRef} />
 
         <div className="w-full fixed bottom-0 right-0 bg-background p-2 z-50">
           <div className="w-full md:max-w-[45rem] mx-auto">

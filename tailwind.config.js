@@ -8,7 +8,11 @@ module.exports = {
     "./node_modules/@heroui/theme/dist/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
-    extend: {},
+    extend: {
+      fontFamily: {
+        main: ["Inter", "Vazirmatn", "sans-serif"],
+      },
+    },
   },
   darkMode: "class",
   plugins: [require("@tailwindcss/typography"), heroui()],

@@ -39,6 +39,7 @@ export type Message = {
   imageSize: (typeof imageSizes)[number] | null;
   imageQuality: (typeof imageQualities)[number] | null;
   type: "text" | "image";
+  files: File[];
 };
 
 export type TextModel = {

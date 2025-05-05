@@ -8,7 +8,6 @@ import TextInputBar from "@/components/chatgpt/TextInput‌Bar";
 import Sidebar from "@/components/chatgpt/Sidebar";
 import { Conversation } from "@/types/chatgpt";
 import MainHeader from "@/components/chatgpt/MainHeader";
-import { PiInfo } from "react-icons/pi";
 
 export default function NewConversationPage() {
   const { isTemporary, setPrompt, conversation, setConversation } =
@@ -52,9 +51,9 @@ export default function NewConversationPage() {
   }, [conversation, router]);
 
   return (
-    <div className="flex flex-col min-h-screen relative">
+    <div className="relative">
       <MainHeader setIsSidebarOpen={setIsSidebarOpen} />
-      <div className="flex flex-col gap-4 items-center justify-between md:justify-start px-0 flex-1">
+      <div className="flex flex-col gap-4 items-center justify-between md:justify-start px-0">
         {isTemporary ? (
           <div className="pt-[14rem]">
             <div className="text-center text-2xl font-bold">

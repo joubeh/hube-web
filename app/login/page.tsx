@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useRef, useState } from "react";
 import { Button } from "@heroui/button";
-import { Divider } from "@heroui/divider";
 import { Form } from "@heroui/form";
 import { Input } from "@heroui/input";
 import { InputOtp } from "@heroui/input-otp";
@@ -10,7 +9,7 @@ import { addToast } from "@heroui/toast";
 import { PiEyeSlash, PiEye } from "react-icons/pi";
 import Image from "next/image";
 import api from "@/lib/api";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { setAuthToken } from "@/actions";
 
 export default function Login() {
@@ -31,6 +30,7 @@ export default function Login() {
   const [nextCodeTime, setNextCodeTime] = useState(180);
   const nextCodeTimer = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   function startNextCodeTimer() {
     setCanSendCode(false);
@@ -58,7 +58,8 @@ export default function Login() {
   async function saveAuthInfo(token: string) {
     localStorage.setItem("authToken", token);
     await setAuthToken(token);
-    router.push("/");
+    const nextPage = searchParams.get("next");
+    router.push((nextPage as string) || "/");
   }
 
   async function index() {
@@ -172,14 +173,21 @@ export default function Login() {
   function formComponents() {
     if (step === "index") {
       return (
-        <Input
-          isRequired
-          label="شماره موبایل"
-          placeholder="09120000000"
-          type="text"
-          value={phone}
-          onValueChange={(val) => setPhone(convertToEnglishNumbers(val))}
-        />
+        <>
+          <Input
+            isRequired
+            label="شماره موبایل"
+            placeholder="09120000000"
+            type="text"
+            value={phone}
+            onValueChange={(val) => setPhone(convertToEnglishNumbers(val))}
+            errorMessage="شماره موبایل خود را وارد کنید"
+            style={{ fontSize: "16px" }}
+            labelPlacement="outside"
+            size="lg"
+            variant="bordered"
+          />
+        </>
       );
     }
     if (step === "login") {
@@ -205,6 +213,11 @@ export default function Login() {
             type={isVisible ? "text" : "password"}
             value={password}
             onValueChange={(val) => setPassword(val)}
+            errorMessage="رمز خود را وارد کنید"
+            style={{ fontSize: "16px" }}
+            labelPlacement="outside"
+            size="lg"
+            variant="bordered"
           />
           <div
             className="text-primary text-sm cursor-pointer"
@@ -225,8 +238,9 @@ export default function Login() {
             value={code}
             onValueChange={(val) => setCode(val)}
             length={4}
+            errorMessage="کد تایید را وارد کنید"
             size="lg"
-            errorMessage="کد باید ۴ رقم باشد"
+            variant="bordered"
           />
         </div>
       );
@@ -240,6 +254,11 @@ export default function Login() {
             type="text"
             value={name}
             onValueChange={(val) => setName(val)}
+            errorMessage="نام خود را وارد کنید"
+            style={{ fontSize: "16px" }}
+            labelPlacement="outside"
+            size="lg"
+            variant="bordered"
           />
           <Input
             isRequired
@@ -247,6 +266,11 @@ export default function Login() {
             type="password"
             value={password}
             onValueChange={(val) => setPassword(val)}
+            errorMessage="یک رمز انتخاب کنید"
+            style={{ fontSize: "16px" }}
+            labelPlacement="outside"
+            size="lg"
+            variant="bordered"
           />
         </>
       );
@@ -258,57 +282,56 @@ export default function Login() {
         type="password"
         value={password}
         onValueChange={(val) => setPassword(val)}
+        errorMessage="رمز جدید را وارد کنید"
+        style={{ fontSize: "16px" }}
+        labelPlacement="outside"
+        size="lg"
+        variant="bordered"
       />
     );
   }
 
   return (
-    <div className="bg-default-50 flex min-h-screen items-center justify-center p-4">
-      <div className="bg-content1 flex w-full max-w-sm flex-col gap-4 rounded-lg p-6 shadow-md">
-        <Image
-          src="/assets/logo.webp"
-          alt="logo"
-          className="mx-auto rounded-2xl"
-          width={80}
-          height={80}
-        />
-        <h2 className="text-xl font-medium text-center">{formTitle()}</h2>
-        <Form className="flex flex-col gap-3" onSubmit={handleSubmit}>
-          {formComponents()}
-          <div className="w-full">
-            {!loading && step === "verify" && canSendCode && (
-              <Button
-                className="w-full mb-1"
-                color="secondary"
-                type="button"
-                onPress={(e) => setStep("index")}
-              >
-                ارسال مجدد کد
-              </Button>
-            )}
-            {!loading && step === "verify" && !canSendCode && (
-              <div className="mb-1 text-gray-700 text-xs text-center">
-                ارسال مجدد:{" "}
-                {`${Math.floor(nextCodeTime / 60)}:${String(
-                  nextCodeTime % 60
-                ).padStart(2, "0")}`}
-              </div>
-            )}
+    <div className="flex w-full max-w-sm mx-auto flex-col gap-4 p-4 pt-[3rem] md:pt-[8rem]">
+      <Image
+        src="/assets/logo.webp"
+        alt="logo"
+        className="mx-auto rounded-2xl"
+        width={80}
+        height={80}
+      />
+      <h2 className="text-xl font-medium text-center">{formTitle()}</h2>
+      <Form className="flex flex-col gap-3" onSubmit={handleSubmit}>
+        {formComponents()}
+        <div className="w-full">
+          {!loading && step === "verify" && canSendCode && (
             <Button
-              className="w-full"
-              color="primary"
-              type="submit"
-              isLoading={loading}
+              className="w-full mb-1"
+              color="secondary"
+              type="button"
+              onPress={(e) => setStep("index")}
             >
-              {submitButtonText()}
+              ارسال مجدد کد
             </Button>
-          </div>
-        </Form>
-        <Divider />
-        <p dir="ltr" className="text-xs text-center text-gray-600">
-          ©2025 Hube
-        </p>
-      </div>
+          )}
+          {!loading && step === "verify" && !canSendCode && (
+            <div className="mb-1 text-gray-700 text-xs text-center">
+              ارسال مجدد:{" "}
+              {`${Math.floor(nextCodeTime / 60)}:${String(
+                nextCodeTime % 60
+              ).padStart(2, "0")}`}
+            </div>
+          )}
+          <Button
+            className="w-full"
+            color="primary"
+            type="submit"
+            isLoading={loading}
+          >
+            {submitButtonText()}
+          </Button>
+        </div>
+      </Form>
     </div>
   );
 }
